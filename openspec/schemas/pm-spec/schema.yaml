@@ -1,0 +1,37 @@
+name: pm-spec
+version: 1
+description: PM 功能層 spec 流程，定義 what 而非 how
+
+artifacts:
+  - id: proposal
+    generates: proposal.md
+    description: 功能概要、動機、初步範圍
+    template: proposal.md
+    instruction: |
+      建立功能提案，說明為什麼要做、預期改變什麼、初步範圍。
+      不需要技術細節。
+
+  - id: specs
+    generates: specs/
+    description: 功能層需求規格（精簡版 6-section）
+    template: spec.md
+    instruction: |
+      基於 proposal 產出 delta spec，使用團隊的 6-section requirements 模板。
+      重點放在行為規格（BDD scenarios）和範圍界定。
+
+  - id: design
+    generates: design.md
+    description: 功能層設計（API、狀態機、資料流、模塊邊界）
+    template: design.md
+    instruction: |
+      基於 specs 產出功能層設計。只描述對外行為和介面，
+      不描述內部實作（class 結構、middleware 串接等留給工程 repo）。
+
+  - id: tasks
+    generates: tasks.md
+    description: FE/BE/Integration 任務拆解
+    template: tasks.md
+    instruction: |
+      基於 design 拆解任務。必須使用固定的三段格式：
+      ## FE Tasks / ## BE Tasks / ## Integration Tasks
+      供 GitHub Action 解析並分發到對應 repo。

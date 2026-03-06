@@ -1,0 +1,70 @@
+name: Spec Sync to FE/BE Repos
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'openspec/specs/**'
+
+env:
+  FE_REPO: ${{ github.repository_owner }}/frontend-app
+  BE_REPO: ${{ github.repository_owner }}/backend-app
+
+jobs:
+  sync-specs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout product-specs
+        uses: actions/checkout@v4
+
+      - name: Sync to frontend-app
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.FE_REPO }}
+          token: ${{ secrets.CROSS_REPO_PAT }}
+          path: _fe_repo
+
+      - name: Copy specs to frontend-app
+        run: |
+          rm -rf _fe_repo/openspec/specs
+          mkdir -p _fe_repo/openspec/specs
+          cp -r openspec/specs/* _fe_repo/openspec/specs/
+
+      - name: Commit and push to frontend-app
+        working-directory: _fe_repo
+        run: |
+          git config user.name "spec-sync-bot"
+          git config user.email "spec-sync-bot@users.noreply.github.com"
+          git add openspec/specs/
+          if git diff --cached --quiet; then
+            echo "No spec changes to sync to frontend-app"
+          else
+            git commit -m "chore: sync specs from product-specs ($(git -C .. rev-parse --short HEAD))"
+            git push
+          fi
+
+      - name: Sync to backend-app
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.BE_REPO }}
+          token: ${{ secrets.CROSS_REPO_PAT }}
+          path: _be_repo
+
+      - name: Copy specs to backend-app
+        run: |
+          rm -rf _be_repo/openspec/specs
+          mkdir -p _be_repo/openspec/specs
+          cp -r openspec/specs/* _be_repo/openspec/specs/
+
+      - name: Commit and push to backend-app
+        working-directory: _be_repo
+        run: |
+          git config user.name "spec-sync-bot"
+          git config user.email "spec-sync-bot@users.noreply.github.com"
+          git add openspec/specs/
+          if git diff --cached --quiet; then
+            echo "No spec changes to sync to backend-app"
+          else
+            git commit -m "chore: sync specs from product-specs ($(git -C .. rev-parse --short HEAD))"
+            git push
+          fi

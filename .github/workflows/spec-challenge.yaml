@@ -1,0 +1,61 @@
+name: Spec Challenge Notification
+
+on:
+  issues:
+    types: [opened, labeled]
+
+jobs:
+  notify-pm:
+    if: contains(github.event.issue.labels.*.name, 'type:spec-challenge')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Find PM and notify
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const issueBody = context.payload.issue.body || '';
+
+            // Extract featureId from issue body
+            const featureIdMatch = issueBody.match(/featureId:\s*(\S+)/i);
+            const featureId = featureIdMatch ? featureIdMatch[1] : null;
+
+            let pmOwner = 'PM';
+
+            if (featureId) {
+              // Try to read the spec to find the owner
+              const specPath = `openspec/specs/${featureId}/spec.md`;
+              try {
+                const specContent = fs.readFileSync(specPath, 'utf8');
+                const ownerMatch = specContent.match(/^owner:\s*(.+)$/m);
+                if (ownerMatch) pmOwner = ownerMatch[1].trim();
+              } catch (e) {
+                console.log(`Could not read spec for ${featureId}: ${e.message}`);
+              }
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: [
+                `## Spec Challenge Received`,
+                '',
+                `@${pmOwner} - A spec challenge has been raised${featureId ? ` for feature \`${featureId}\`` : ''}.`,
+                '',
+                'Please review and respond within **2 business days**:',
+                '1. **Accept**: Open a spec change PR to update the spec',
+                '2. **Reject**: Explain the rationale and close this issue',
+                '3. **Discuss**: Request further discussion',
+              ].join('\n'),
+            });
+
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['needs-pm-response'],
+            });
