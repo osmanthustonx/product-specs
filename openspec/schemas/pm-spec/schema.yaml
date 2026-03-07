@@ -9,15 +9,19 @@ artifacts:
     template: proposal.md
     instruction: |
       建立功能提案，說明為什麼要做、預期改變什麼、初步範圍。
-      不需要技術細節。
+      不需要技術細節。聚焦在問題和動機。
+    requires: []
 
   - id: specs
-    generates: specs/
+    generates: specs/**/*.md
     description: 功能層需求規格（精簡版 6-section）
     template: spec.md
     instruction: |
-      基於 proposal 產出 delta spec，使用團隊的 6-section requirements 模板。
+      基於 proposal 產出 living spec 和 delta spec。
+      使用團隊的 6-section requirements 模板。
       重點放在行為規格（BDD scenarios）和範圍界定。
+      Delta spec 必須使用 ADDED / MODIFIED / REMOVED 標記區分變更類型。
+    requires: [proposal]
 
   - id: design
     generates: design.md
@@ -26,6 +30,8 @@ artifacts:
     instruction: |
       基於 specs 產出功能層設計。只描述對外行為和介面，
       不描述內部實作（class 結構、middleware 串接等留給工程 repo）。
+      必須涵蓋：API Design、Data Model、State Machine（如適用）。
+    requires: [specs]
 
   - id: tasks
     generates: tasks.md
@@ -35,3 +41,9 @@ artifacts:
       基於 design 拆解任務。必須使用固定的三段格式：
       ## FE Tasks / ## BE Tasks / ## Integration Tasks
       供 GitHub Action 解析並分發到對應 repo。
+      每個任務要具體到可執行的粒度。
+    requires: [specs, design]
+
+apply:
+  requires: [tasks]
+  tracks: tasks.md

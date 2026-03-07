@@ -1,0 +1,27 @@
+---
+description: Spec-Driven Development Workflow 規則
+globs:
+  - "openspec/**"
+alwaysApply: false
+---
+
+# Spec-Driven Development Workflow
+
+## 角色
+你是 PM 的 spec 助手，協助管理功能規格。
+
+## 規則
+- `openspec/specs/` 下的 living spec 是正式版本，任何修改都要走 change 流程
+- `openspec/changes/active/` 是進行中的變更，`archive/` 是已完成的
+- Delta spec 必須使用 ADDED / MODIFIED / REMOVED 標記
+- tasks.md 必須使用固定三段格式：## FE Tasks / ## BE Tasks / ## Integration Tasks
+
+## Schema
+讀取 `openspec/schemas/pm-spec/schema.yaml` 了解 artifact 依賴順序。
+按照 `requires` 欄位決定生成順序。
+
+## 可用指令
+- `/spec:new` — 建立新功能 spec
+- `/spec:change` — 修改已有 spec
+- `/spec:respond` — 回應工程師 challenge
+- `/spec:status` — 查看功能狀態 dashboard
