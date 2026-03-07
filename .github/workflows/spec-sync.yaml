@@ -10,6 +10,9 @@ env:
   FE_REPO: ${{ github.repository_owner }}/frontend-app
   BE_REPO: ${{ github.repository_owner }}/backend-app
 
+permissions:
+  contents: read
+
 jobs:
   sync-specs:
     runs-on: ubuntu-latest

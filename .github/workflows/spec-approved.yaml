@@ -9,6 +9,9 @@ env:
   FE_REPO: ${{ github.repository_owner }}/frontend-app
   BE_REPO: ${{ github.repository_owner }}/backend-app
 
+permissions:
+  contents: write
+
 jobs:
   process-approved-spec:
     if: github.event.pull_request.merged == true
@@ -18,7 +21,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.CROSS_REPO_PAT }}
 
       - name: Find active changes
         id: find-changes
