@@ -77,11 +77,12 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "chore: archive changes and update spec status [skip ci]"
-            git push
+            git pull --rebase origin main || true
+            git push || echo "Push failed (may already be up to date)"
           fi
 
       - name: Create or update issues in FE/BE repos
-        if: steps.find-changes.outputs.has_changes == 'true'
+        if: always() && steps.find-changes.outputs.has_changes == 'true'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.CROSS_REPO_PAT }}
