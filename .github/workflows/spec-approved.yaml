@@ -32,7 +32,6 @@ jobs:
             exit 0
           fi
           echo "has_changes=true" >> "$GITHUB_OUTPUT"
-          # Save change names for the issue-creation step
           NAMES=""
           for DIR in $CHANGES; do
             NAMES="$NAMES$(basename "$DIR")\n"
@@ -90,11 +89,9 @@ jobs:
             const fs = require('fs');
             const path = require('path');
 
-            // Only process the changes we just archived
             const changeNames = `${{ steps.find-changes.outputs.change_names }}`.trim().split('\n').filter(Boolean);
             const archiveDir = 'openspec/changes/archive';
 
-            // Helper: find existing open issue for a featureId in a repo
             async function findExistingIssue(owner, repo, featureId) {
               const { data: issues } = await github.rest.issues.listForRepo({
                 owner, repo, state: 'open', labels: 'spec-task',
@@ -104,15 +101,8 @@ jobs:
 
             for (const changeName of changeNames) {
               const changeDir = path.join(archiveDir, changeName);
-              const tasksPath = path.join(changeDir, 'tasks.md');
-              if (!fs.existsSync(tasksPath)) {
-                console.log(`No tasks.md found for ${changeName}, skipping`);
-                continue;
-              }
 
-              const tasksContent = fs.readFileSync(tasksPath, 'utf8');
-
-              // Extract featureId
+              // Extract featureId from specs/ directory
               let featureId = changeName;
               const specsDir = path.join(changeDir, 'specs');
               if (fs.existsSync(specsDir)) {
@@ -130,115 +120,61 @@ jobs:
                   const specContent = fs.readFileSync(specFiles[0], 'utf8');
                   const match = specContent.match(/featureId:\s*(.+)/);
                   if (match) featureId = match[1].trim();
+                  // Also try extracting from directory structure
+                  if (!match) {
+                    const relativePath = path.relative(specsDir, specFiles[0]);
+                    featureId = path.dirname(relativePath);
+                  }
                 }
               }
 
-              // Parse task sections
-              const feTasks = tasksContent.match(/## FE Tasks\n([\s\S]*?)(?=\n## |$)/)?.[1]?.trim() || '';
-              const beTasks = tasksContent.match(/## BE Tasks\n([\s\S]*?)(?=\n## |$)/)?.[1]?.trim() || '';
-              const integrationTasks = tasksContent.match(/## Integration Tasks\n([\s\S]*?)(?=\n## |$)/)?.[1]?.trim() || '';
-
               const specCommit = context.sha.substring(0, 7);
               const specLink = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/blob/main/openspec/specs/${featureId}/spec.md`;
-              const designLink = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/blob/main/openspec/changes/archive/${changeName}/design.md`;
               const prUrl = context.payload.pull_request?.html_url || '';
 
               const [feOwner, feRepo] = process.env.FE_REPO.split('/');
               const [beOwner, beRepo] = process.env.BE_REPO.split('/');
 
-              // Process FE
-              if (feTasks) {
-                const existing = await findExistingIssue(feOwner, feRepo, featureId);
+              // Process both FE and BE
+              for (const [owner, repo, prefix] of [[feOwner, feRepo, 'FE'], [beOwner, beRepo, 'BE']]) {
+                const existing = await findExistingIssue(owner, repo, featureId);
                 if (existing) {
-                  // Feature already has an issue — comment with spec update + new tasks
                   await github.rest.issues.createComment({
-                    owner: feOwner, repo: feRepo, issue_number: existing.number,
+                    owner, repo, issue_number: existing.number,
                     body: [
                       `## Spec Updated — \`${changeName}\``,
                       '',
                       `Spec PR: ${prUrl}`,
                       `Commit: ${specCommit}`,
                       '',
-                      '### Updated FE Tasks',
-                      feTasks,
-                      '',
-                      integrationTasks ? `### Updated Integration Tasks\n${integrationTasks}` : '',
-                      '',
                       `[View updated spec](${specLink})`,
                     ].join('\n'),
                   });
                   await github.rest.issues.addLabels({
-                    owner: feOwner, repo: feRepo, issue_number: existing.number,
+                    owner, repo, issue_number: existing.number,
                     labels: ['spec-updated'],
                   });
-                  console.log(`Commented on existing FE issue #${existing.number} for ${featureId}`);
+                  console.log(`Commented on existing ${prefix} issue #${existing.number} for ${featureId}`);
                 } else {
-                  // No existing issue — create new
                   await github.rest.issues.create({
-                    owner: feOwner, repo: feRepo,
-                    title: `[FE] ${featureId}`,
+                    owner, repo,
+                    title: `[${prefix}] ${featureId}`,
                     body: [
                       `<!-- spec-sync: featureId=${featureId}, specCommit=${specCommit} -->`,
                       '',
-                      '## Spec Links',
+                      '## Spec',
                       `- [spec.md](${specLink})`,
-                      `- [design.md](${designLink})`,
                       '',
-                      '## FE Tasks',
-                      feTasks,
+                      '## Source',
+                      `- Spec PR: ${prUrl}`,
+                      `- Change: \`${changeName}\``,
                       '',
-                      integrationTasks ? `## Integration Tasks\n${integrationTasks}` : '',
+                      '## Next Steps',
+                      `工程師請用 \`/eng:start ${featureId}\` 開始實作。`,
                     ].join('\n'),
                     labels: ['spec-task'],
                   });
-                  console.log(`Created FE issue for ${featureId}`);
-                }
-              }
-
-              // Process BE
-              if (beTasks) {
-                const existing = await findExistingIssue(beOwner, beRepo, featureId);
-                if (existing) {
-                  await github.rest.issues.createComment({
-                    owner: beOwner, repo: beRepo, issue_number: existing.number,
-                    body: [
-                      `## Spec Updated — \`${changeName}\``,
-                      '',
-                      `Spec PR: ${prUrl}`,
-                      `Commit: ${specCommit}`,
-                      '',
-                      '### Updated BE Tasks',
-                      beTasks,
-                      '',
-                      integrationTasks ? `### Updated Integration Tasks\n${integrationTasks}` : '',
-                      '',
-                      `[View updated spec](${specLink})`,
-                    ].join('\n'),
-                  });
-                  await github.rest.issues.addLabels({
-                    owner: beOwner, repo: beRepo, issue_number: existing.number,
-                    labels: ['spec-updated'],
-                  });
-                  console.log(`Commented on existing BE issue #${existing.number} for ${featureId}`);
-                } else {
-                  await github.rest.issues.create({
-                    owner: beOwner, repo: beRepo,
-                    title: `[BE] ${featureId}`,
-                    body: [
-                      `<!-- spec-sync: featureId=${featureId}, specCommit=${specCommit} -->`,
-                      '',
-                      '## Spec Links',
-                      `- [spec.md](${specLink})`,
-                      `- [design.md](${designLink})`,
-                      '',
-                      '## BE Tasks',
-                      beTasks,
-                      '',
-                      integrationTasks ? `## Integration Tasks\n${integrationTasks}` : '',
-                    ].join('\n'),
-                    labels: ['spec-task'],
-                  });
-                  console.log(`Created BE issue for ${featureId}`);
+                  console.log(`Created ${prefix} issue for ${featureId}`);
                 }
               }
             }

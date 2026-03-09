@@ -26,13 +26,10 @@ git checkout -b feature/<功能名稱>
 - `openspec/specs/<功能名稱>/spec.md` — living spec（正式版）
 - `openspec/changes/active/<功能名稱>/proposal.md`
 - `openspec/changes/active/<功能名稱>/specs/<功能名稱>/spec.md` — delta spec
-- `openspec/changes/active/<功能名稱>/design.md`
-- `openspec/changes/active/<功能名稱>/tasks.md`
+
+注意：PM 不寫 design.md 和 tasks.md，那是工程師的職責。
 
 ## Step 5: 依 schema 順序引導 PM 填寫
-
-根據 schema.yaml 裡的 `requires` 依賴順序，逐一引導 PM 完成每份 artifact。
-每個 artifact 開始前，讀取 schema 裡對應的 `instruction` 作為生成指引。
 
 ### 5.1 proposal.md（requires: 無）
 問 PM：
@@ -69,32 +66,6 @@ lastUpdated: <今天日期>
 delta spec 使用標準化格式，用 `## ADDED Requirements` 標記所有新增內容。
 每個 requirement 下用 `#### Scenario:` 搭配 Given/When/Then 格式。
 
-### 5.3 design.md（requires: specs）
-基於 spec 產出功能層設計：
-- API Design（REST endpoints、request/response 格式）
-- Data Model
-- State Machine（如適用）
-- Data Flow
-- Module Boundaries
-
-注意：只描述「對外行為和介面」，不寫內部實作細節。
-
-### 5.4 tasks.md（requires: specs, design）
-基於 design 拆解任務，必須使用以下固定格式（標題不能改）：
-
-```markdown
-## FE Tasks
-- [ ] 任務 1
-- [ ] 任務 2
-
-## BE Tasks
-- [ ] 任務 1
-- [ ] 任務 2
-
-## Integration Tasks
-- [ ] 任務 1
-```
-
 ## Step 6: Commit + Push + 開 PR
 
 ```bash
@@ -123,8 +94,6 @@ PM: @<owner>
 ## Checklist
 - [x] proposal.md completed
 - [x] specs/ delta spec completed (6-section format)
-- [x] design.md completed (functional-level design)
-- [x] tasks.md completed (FE/BE/Integration 3-section format correct)
 - [x] Dependencies section annotated (if applicable)
 ```
 
@@ -133,4 +102,5 @@ PM: @<owner>
 告訴 PM：
 - PR 已建立，請找工程師 review
 - 兩方都 approve 後 merge
-- Merge 後會自動：同步 spec 到 FE/BE repos、開 issue、歸檔 change
+- Merge 後會自動：同步 spec 到 FE/BE repos、在 FE/BE 開 issue
+- 工程師收到 issue 後，會用 `/eng:start` 自行做 design 和 tasks 拆解

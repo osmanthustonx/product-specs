@@ -68,13 +68,8 @@ git checkout -b feature/update-<描述>
 ```
 
 1. 建立新 change：`openspec/changes/active/update-<描述>/`
-2. 寫 delta spec，使用標準化格式：
-   - `## ADDED Requirements` — 新增的需求和場景
-   - `## MODIFIED Requirements` — 修改的需求（標注 `Previously: <舊行為>`）
-   - `## REMOVED Requirements` — 移除的需求（標注 `Reason: <原因>`）
-   每個 requirement 下用 `#### Scenario:` 搭配 Given/When/Then 格式。
-3. 寫 tasks.md（新增的 FE/BE/Integration 任務）
-4. 同步更新 `openspec/specs/<功能名稱>/spec.md`（living spec）
+2. 寫 delta spec，使用標準化格式（ADDED/MODIFIED/REMOVED）
+3. 同步更新 `openspec/specs/<功能名稱>/spec.md`（living spec）
 
 ```bash
 git add -A

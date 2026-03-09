@@ -51,8 +51,6 @@ gh issue list --repo <owner>/backend-app --label "spec-task" --state all --json 
 |----------|--------|------------|
 | proposal | done   | —          |
 | specs    | done   | proposal   |
-| design   | ready  | specs      |
-| tasks    | blocked | specs, design |
 
 ## Open Spec Challenges
 - #3: PATCH toggle 設計不合理（waiting for PM response）
