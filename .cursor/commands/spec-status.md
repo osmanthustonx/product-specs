@@ -13,7 +13,15 @@
 - owner
 - lastUpdated
 
-## Step 3: 查詢對應的 FE/BE issues
+## Step 3: 建立依賴圖
+
+從所有 spec 的 frontmatter 提取 `depends` 欄位，建立依賴關係圖。
+
+對每個功能，找出：
+- **depends on**（我依賴誰）：從自己的 `depends` 欄位讀取
+- **depended by**（誰依賴我）：掃描其他 spec 的 `depends` 是否包含自己的 featureId
+
+## Step 4: 查詢對應的 FE/BE issues
 
 用 gh CLI 查詢 FE 和 BE repos 的 spec-task issues：
 
@@ -24,7 +32,7 @@ gh issue list --repo <owner>/backend-app --label "spec-task" --state all --json 
 
 注意：`<owner>` 從 git remote 的 URL 解析取得。
 
-## Step 4: 分析 active changes 的 artifact 狀態
+## Step 5: 分析 active changes 的 artifact 狀態
 
 列出 `openspec/changes/active/` 下正在進行的 changes。
 
@@ -33,7 +41,7 @@ gh issue list --repo <owner>/backend-app --label "spec-task" --state all --json 
 - **ready** — 所有 `requires` 的 artifact 都是 done，但本身尚未完成
 - **blocked** — 有 `requires` 的 artifact 還沒 done
 
-## Step 5: 輸出 Dashboard
+## Step 6: 輸出 Dashboard
 
 用表格呈現：
 
@@ -54,9 +62,19 @@ gh issue list --repo <owner>/backend-app --label "spec-task" --state all --json 
 
 ## Open Spec Challenges
 - #3: PATCH toggle 設計不合理（waiting for PM response）
+
+## 依賴關係圖
+
+| Feature | Depends On | Depended By |
+|---------|-----------|-------------|
+| todo-crud | — | todo-img, todo-share |
+| todo-img | todo-crud | — |
+| todo-share | todo-crud, todo-img | — |
+
+⚠ 修改 todo-crud 會影響 todo-img, todo-share
 ```
 
-## Step 6: 提供快捷操作
+## Step 7: 提供快捷操作
 
 問 PM 是否要對某個功能做操作：
 - 開新功能 → 引導用 `/spec:new`

@@ -129,39 +129,73 @@ jobs:
                 }
               }
 
+              // Find dependent features (specs that depend on this featureId)
+              const allFeatureIds = [featureId];
+              const specsRoot = 'openspec/specs';
+              if (fs.existsSync(specsRoot)) {
+                for (const dir of fs.readdirSync(specsRoot)) {
+                  const depSpecPath = path.join(specsRoot, dir, 'spec.md');
+                  if (fs.existsSync(depSpecPath)) {
+                    const depContent = fs.readFileSync(depSpecPath, 'utf8');
+                    const dependsMatch = depContent.match(/^depends:\s*\[([^\]]*)\]/m);
+                    if (dependsMatch) {
+                      const deps = dependsMatch[1].split(',').map(d => d.trim()).filter(Boolean);
+                      if (deps.includes(featureId) && !allFeatureIds.includes(dir)) {
+                        allFeatureIds.push(dir);
+                        console.log(`Found dependent feature: ${dir} (depends on ${featureId})`);
+                      }
+                    }
+                  }
+                }
+              }
+
               const specCommit = context.sha.substring(0, 7);
-              const specLink = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/blob/main/openspec/specs/${featureId}/spec.md`;
               const prUrl = context.payload.pull_request?.html_url || '';
 
               const [feOwner, feRepo] = process.env.FE_REPO.split('/');
               const [beOwner, beRepo] = process.env.BE_REPO.split('/');
 
-              // Process both FE and BE
-              for (const [owner, repo, prefix] of [[feOwner, feRepo, 'FE'], [beOwner, beRepo, 'BE']]) {
-                const existing = await findExistingIssue(owner, repo, featureId);
+              // Process all affected features (original + dependents)
+              for (const affectedFeatureId of allFeatureIds) {
+                const specLink = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/blob/main/openspec/specs/${affectedFeatureId}/spec.md`;
+                const isDependant = affectedFeatureId !== featureId;
+
+                for (const [owner, repo, prefix] of [[feOwner, feRepo, 'FE'], [beOwner, beRepo, 'BE']]) {
+                  const existing = await findExistingIssue(owner, repo, affectedFeatureId);
                 if (existing) {
+                  const commentBody = isDependant
+                    ? [
+                        `## ⚠ Cascading Spec Update — \`${changeName}\``,
+                        '',
+                        `依賴的功能 \`${featureId}\` 已更新，可能影響此功能。`,
+                        `Spec PR: ${prUrl}`,
+                        '',
+                        `[View ${featureId} spec](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/blob/main/openspec/specs/${featureId}/spec.md)`,
+                        `[View ${affectedFeatureId} spec](${specLink})`,
+                      ].join('\n')
+                    : [
+                        `## Spec Updated — \`${changeName}\``,
+                        '',
+                        `Spec PR: ${prUrl}`,
+                        `Commit: ${specCommit}`,
+                        '',
+                        `[View updated spec](${specLink})`,
+                      ].join('\n');
                   await github.rest.issues.createComment({
                     owner, repo, issue_number: existing.number,
-                    body: [
-                      `## Spec Updated — \`${changeName}\``,
-                      '',
-                      `Spec PR: ${prUrl}`,
-                      `Commit: ${specCommit}`,
-                      '',
-                      `[View updated spec](${specLink})`,
-                    ].join('\n'),
+                    body: commentBody,
                   });
                   await github.rest.issues.addLabels({
                     owner, repo, issue_number: existing.number,
                     labels: ['spec-updated'],
                   });
-                  console.log(`Commented on existing ${prefix} issue #${existing.number} for ${featureId}`);
-                } else {
+                  console.log(`${isDependant ? 'Cascade notified' : 'Commented on'} ${prefix} issue #${existing.number} for ${affectedFeatureId}`);
+                } else if (!isDependant) {
                   await github.rest.issues.create({
                     owner, repo,
-                    title: `[${prefix}] ${featureId}`,
+                    title: `[${prefix}] ${affectedFeatureId}`,
                     body: [
-                      `<!-- spec-sync: featureId=${featureId}, specCommit=${specCommit} -->`,
+                      `<!-- spec-sync: featureId=${affectedFeatureId}, specCommit=${specCommit} -->`,
                       '',
                       '## Spec',
                       `- [spec.md](${specLink})`,
@@ -171,11 +205,12 @@ jobs:
                       `- Change: \`${changeName}\``,
                       '',
                       '## Next Steps',
-                      `工程師請用 \`/eng:start ${featureId}\` 開始實作。`,
+                      `工程師請用 \`/eng-start ${affectedFeatureId}\` 開始實作。`,
                     ].join('\n'),
                     labels: ['spec-task'],
                   });
-                  console.log(`Created ${prefix} issue for ${featureId}`);
+                  console.log(`Created ${prefix} issue for ${affectedFeatureId}`);
                 }
               }
+            }
             }

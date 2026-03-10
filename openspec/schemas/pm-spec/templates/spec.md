@@ -3,6 +3,7 @@ featureId: {{feature-id}}
 title: {{title}}
 status: draft
 owner: {{owner}}
+depends: []
 lastUpdated: {{date}}
 ---
 

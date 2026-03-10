@@ -59,9 +59,16 @@ featureId: <功能名稱>
 title: <中文標題>
 status: draft
 owner: PM
+depends: []
 lastUpdated: <今天日期>
 ---
 ```
+
+**depends 欄位**：列出這個功能依賴的其他 featureId。
+- 掃描 `openspec/specs/` 下所有已存在的 spec，列出可選的 featureId 給 PM 參考
+- 問 PM：「這個功能有依賴其他已存在的功能嗎？」
+- 如果有依賴，填入 `depends: [todo-crud, user-auth]`
+- 如果沒有，保留 `depends: []`
 
 delta spec 使用標準化格式，用 `## ADDED Requirements` 標記所有新增內容。
 每個 requirement 下用 `#### Scenario:` 搭配 Given/When/Then 格式。

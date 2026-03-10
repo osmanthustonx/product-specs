@@ -21,4 +21,6 @@ artifacts:
       使用團隊的 6-section requirements 模板。
       重點放在行為規格（BDD scenarios）和範圍界定。
       Delta spec 必須使用 ADDED / MODIFIED / REMOVED 標記區分變更類型。
+      frontmatter 的 depends 欄位用來聲明功能間的依賴關係，
+      修改被依賴的 spec 時系統會自動通知所有依賴方。
     requires: [proposal]
